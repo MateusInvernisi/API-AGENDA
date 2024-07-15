@@ -1,0 +1,85 @@
+const { pool } = require('../config');
+const Evento = require('../entities/Evento')
+
+const getEventosDB = async () => {
+    try {
+        const { rows } = await pool.query(`SELECT eventos.*, usuarios.nome AS nome
+        FROM eventos 
+        LEFT JOIN usuarios ON eventos.usuario_id = usuarios.id
+        ORDER BY eventos.data_hora;        
+        `);
+        return rows.map((evento) => new Evento(
+            evento.id, 
+            evento.titulo, 
+            evento.data_hora, 
+            evento.descricao, 
+            evento.nome
+        ));
+    } catch (err) {
+        throw "Erro: " + err;
+    }
+}
+
+
+const addEventoDB = async (body) => {
+    try {
+        const { titulo, data_hora, descricao, usuario_id } = body;
+        const results = await pool.query(`INSERT INTO eventos (titulo, data_hora, descricao, usuario_id) 
+                                        VALUES ($1, $2, $3, $4) returning id, titulo, data_hora, descricao, usuario_id`, 
+                                        [titulo, data_hora, descricao, usuario_id]);
+        const evento = results.rows[0];
+        return new Evento(evento.id, evento.titulo, evento.data_hora, evento.descricao, evento.usuario_id);
+    } catch (err) {
+        throw "Erro ao inserir o evento: " + err;
+    }
+}
+
+const updateEventoDB = async (body) => {
+    try {
+        const { id, data_hora } = body;        
+        const results = await pool.query(`UPDATE eventos set data_hora = $2
+        WHERE id = $1 returning id, data_hora`, [id, data_hora]);
+        if (results.rowCount == 0) {
+            throw `Nenhum registro encontrado com o código ${id} para ser alterado`;
+        }
+        const evento = results.rows[0];
+        return new Evento(evento.id, evento.titulo, evento.data_hora, evento.descricao);
+    } catch (err) {
+        throw "Erro ao alterar o evento: " + err;
+    }
+}
+
+const deleteEventoDB = async (codigo) => {
+    try {
+        const results = await pool.query(`DELETE FROM eventos WHERE id = $1`, [codigo]);
+        if (results.rowCount == 0) {
+            throw `Nenhum registro encontrado com o código ${codigo} para ser removido`;
+        } else {
+            return `Evento de código ${codigo} removido com sucesso!`;
+        }
+    } catch (err) {
+        throw "Erro ao remover o evento: " + err;
+    }
+}
+
+const getEventoPorCodigoDB = async (codigo) => {
+    try {
+        const results = await pool.query(`SELECT * FROM eventos
+        WHERE id = $1`, [codigo]);
+        if (results.rowCount == 0) {
+            throw `Nenhum registro encontrado com o código ${codigo}`;
+        } else {
+            const evento = results.rows[0];
+            return new Evento(evento.id, evento.titulo, evento.data_hora, evento.descricao, evento.usuario_id);
+        }
+    } catch (err) {
+        throw "Erro ao recuperar a usuario: " + err;
+    }
+}
+
+
+
+
+module.exports = {
+  getEventosDB, addEventoDB, updateEventoDB, deleteEventoDB, getEventoPorCodigoDB
+}
