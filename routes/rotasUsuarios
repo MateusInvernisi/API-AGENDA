@@ -1,0 +1,18 @@
+const { Router } = require('express');
+const { getUsuarios, addUsuario, updateUsuario, deleteUsuario, getUsuarioPorCodigo } =
+    require('../controllers/usuarioController');
+const { verificaJWT } = require('../controllers/loginController');
+
+const rotasUsuarios = new Router();
+
+rotasUsuarios.route('/usuario')
+    .post(addUsuario)
+    .get(verificaJWT, getUsuarios)
+    .put(verificaJWT, updateUsuario)
+
+
+rotasUsuarios.route('/usuario/:codigo')
+    .get(verificaJWT, getUsuarioPorCodigo)
+    .delete(verificaJWT, deleteUsuario);
+
+module.exports = { rotasUsuarios };
